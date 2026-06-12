@@ -179,32 +179,171 @@ INDEX_HTML = r"""<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>金融热点雷达</title>
   <style>
-    :root { color-scheme: light; --bg:#f6f7f9; --panel:#ffffff; --ink:#1d2430; --muted:#657184; --line:#dfe4ea; --accent:#126c5f; --warn:#a24614; --risk:#9f2436; }
+    :root {
+      color-scheme: dark;
+      --bg:#050807;
+      --panel:rgba(10,18,17,.78);
+      --panel-strong:rgba(15,28,26,.92);
+      --ink:#e7f7f3;
+      --muted:#8ea19b;
+      --line:rgba(150,255,229,.16);
+      --line-strong:rgba(150,255,229,.34);
+      --accent:#27e0b3;
+      --accent-2:#9cf6df;
+      --warn:#f2c266;
+      --risk:#ff6f8d;
+      --shadow:0 20px 80px rgba(0,0,0,.35);
+    }
     * { box-sizing: border-box; }
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
-    header { padding:18px 28px; background:#10231f; color:white; display:flex; justify-content:space-between; gap:16px; align-items:center; }
-    h1 { font-size:22px; margin:0; letter-spacing:0; }
-    main { max-width:1280px; margin:0 auto; padding:22px; display:grid; grid-template-columns: 330px 1fr; gap:18px; }
-    section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
-    h2 { margin:0 0 12px; font-size:16px; }
-    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; }
-    input, select, button { width:100%; min-height:36px; border:1px solid var(--line); border-radius:6px; padding:7px 9px; font:inherit; background:white; color:var(--ink); }
-    button { cursor:pointer; background:var(--accent); border-color:var(--accent); color:white; font-weight:650; }
-    button.secondary { background:white; color:var(--ink); }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .toolbar { display:grid; grid-template-columns: repeat(6, minmax(96px,1fr)); gap:8px; margin-bottom:12px; align-items:end; }
-    .status { font-size:12px; color:var(--muted); }
-    .pill { display:inline-block; padding:3px 7px; border-radius:999px; background:#eef4f2; color:#14584f; font-size:12px; margin-right:4px; }
-    .hotspot { border-top:1px solid var(--line); padding:13px 0; }
-    .hotspot:first-child { border-top:0; }
-    .hotspot h3 { margin:0 0 6px; font-size:17px; line-height:1.35; }
-    .meta { color:var(--muted); font-size:12px; margin-bottom:6px; }
+    body {
+      margin:0;
+      min-height:100vh;
+      font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:
+        radial-gradient(circle at 18% 0%, rgba(39,224,179,.18), transparent 29rem),
+        radial-gradient(circle at 82% 12%, rgba(242,194,102,.1), transparent 24rem),
+        linear-gradient(180deg, #06100e 0%, #050807 46%, #07100f 100%);
+      color:var(--ink);
+    }
+    body::before {
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:
+        linear-gradient(rgba(156,246,223,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(156,246,223,.045) 1px, transparent 1px);
+      background-size:44px 44px;
+      mask-image:radial-gradient(circle at 50% 8%, black, transparent 78%);
+    }
+    body::after {
+      content:"";
+      position:fixed;
+      left:12%;
+      right:12%;
+      top:-180px;
+      height:360px;
+      pointer-events:none;
+      background:radial-gradient(ellipse at center, rgba(156,246,223,.22), transparent 64%);
+      filter:blur(28px);
+    }
+    header {
+      position:sticky;
+      top:0;
+      z-index:10;
+      padding:18px 28px;
+      background:rgba(5,8,7,.72);
+      border-bottom:1px solid var(--line);
+      backdrop-filter:blur(18px);
+      display:flex;
+      justify-content:space-between;
+      gap:16px;
+      align-items:center;
+    }
+    h1 { font-size:22px; margin:0; letter-spacing:0; display:flex; align-items:center; gap:10px; }
+    h1::before { content:""; width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 24px var(--accent); }
+    main { max-width:1420px; margin:0 auto; padding:24px; display:grid; grid-template-columns: 360px 1fr; gap:18px; position:relative; z-index:1; }
+    section {
+      position:relative;
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(15,28,26,.88), rgba(7,13,12,.82));
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:18px;
+      box-shadow:var(--shadow);
+    }
+    section::before {
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:linear-gradient(120deg, rgba(156,246,223,.11), transparent 28%, transparent 76%, rgba(242,194,102,.08));
+      opacity:.72;
+    }
+    section > * { position:relative; z-index:1; }
+    h2 { margin:0 0 14px; font-size:15px; letter-spacing:.02em; display:flex; align-items:center; justify-content:space-between; }
+    h2::after { content:""; width:42px; height:1px; background:linear-gradient(90deg, var(--accent), transparent); }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 5px; }
+    input, select, button {
+      width:100%;
+      min-height:38px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      padding:8px 10px;
+      font:inherit;
+      background:rgba(255,255,255,.045);
+      color:var(--ink);
+      outline:none;
+      transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
+    }
+    select option { color:#10201d; background:#f4fffc; }
+    input:focus, select:focus { border-color:var(--line-strong); box-shadow:0 0 0 3px rgba(39,224,179,.12); }
+    button {
+      cursor:pointer;
+      border-color:rgba(39,224,179,.52);
+      color:#03120f;
+      background:linear-gradient(135deg, var(--accent), var(--accent-2));
+      font-weight:760;
+    }
+    button:hover { transform:translateY(-1px); box-shadow:0 10px 28px rgba(39,224,179,.18); }
+    button.secondary { background:rgba(255,255,255,.035); color:var(--ink); border-color:var(--line-strong); }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .toolbar { display:grid; grid-template-columns: repeat(6, minmax(100px,1fr)); gap:10px; margin-bottom:14px; align-items:end; }
+    .status { font-size:12px; color:var(--muted); line-height:1.55; }
+    .hero {
+      grid-column:1 / -1;
+      display:grid;
+      grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);
+      gap:18px;
+      align-items:stretch;
+    }
+    .hero-copy { padding:24px; }
+    .eyebrow { color:var(--accent-2); font-size:12px; font-weight:750; letter-spacing:.12em; text-transform:uppercase; margin-bottom:10px; }
+    .hero-title { margin:0; font-size:38px; line-height:1.08; letter-spacing:0; max-width:760px; }
+    .hero-subtitle { margin:14px 0 0; color:var(--muted); line-height:1.7; max-width:760px; }
+    .stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:18px; }
+    .stat {
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      border-radius:10px;
+      padding:12px;
+    }
+    .stat strong { display:block; font-size:22px; color:var(--accent-2); margin-bottom:2px; }
+    .stat span { color:var(--muted); font-size:12px; }
+    .signal-card {
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(39,224,179,.2), transparent 16rem),
+        linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+    }
+    .signal-line { height:86px; border-radius:10px; border:1px solid var(--line); background:linear-gradient(90deg, transparent, rgba(39,224,179,.12), transparent); position:relative; overflow:hidden; }
+    .signal-line::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg, transparent 0 22px, rgba(156,246,223,.2) 23px 24px); animation:drift 5s linear infinite; }
+    @keyframes drift { to { transform:translateX(44px); } }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; background:rgba(39,224,179,.12); border:1px solid rgba(39,224,179,.18); color:var(--accent-2); font-size:12px; margin:0 5px 5px 0; }
+    .hotspot {
+      position:relative;
+      margin-top:12px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:rgba(255,255,255,.035);
+      padding:14px;
+    }
+    .hotspot::before { content:""; position:absolute; inset:-1px; border-radius:12px; padding:1px; background:linear-gradient(120deg, rgba(39,224,179,.45), transparent 32%, rgba(242,194,102,.28)); mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite:exclude; pointer-events:none; opacity:.56; }
+    .hotspot h3 { margin:0 0 8px; font-size:17px; line-height:1.38; }
+    .meta { color:var(--muted); font-size:12px; margin-bottom:7px; line-height:1.55; }
     .risk { color:var(--risk); font-weight:700; }
-    .keyword { display:flex; justify-content:space-between; gap:8px; align-items:center; border-top:1px solid var(--line); padding:8px 0; }
-    .keyword button { width:auto; min-height:30px; padding:4px 9px; font-size:12px; }
-    .digest { white-space:pre-wrap; background:#f8fafb; border:1px solid var(--line); border-radius:6px; padding:12px; max-height:420px; overflow:auto; font-size:13px; line-height:1.55; }
-    a { color:#0f5f95; text-decoration:none; }
-    @media (max-width: 900px) { main { grid-template-columns:1fr; padding:12px; } .toolbar { grid-template-columns:1fr 1fr; } header { padding:14px; } }
+    .keyword { display:flex; justify-content:space-between; gap:10px; align-items:center; border-top:1px solid var(--line); padding:10px 0; }
+    .keyword button { width:auto; min-height:30px; padding:4px 10px; font-size:12px; color:var(--ink); }
+    .digest { white-space:pre-wrap; background:rgba(0,0,0,.22); border:1px solid var(--line); border-radius:10px; padding:14px; max-height:420px; overflow:auto; font-size:13px; line-height:1.65; }
+    .stack { display:grid; gap:14px; }
+    .panel-title-row { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .mini-badge { border:1px solid var(--line); background:rgba(255,255,255,.04); color:var(--muted); border-radius:999px; padding:5px 9px; font-size:12px; }
+    a { color:var(--accent-2); text-decoration:none; word-break:break-all; }
+    @media (max-width: 1080px) { main { grid-template-columns:1fr; } .hero { grid-template-columns:1fr; } .toolbar { grid-template-columns:1fr 1fr 1fr; } }
+    @media (max-width: 720px) { main { padding:12px; } header { padding:14px; } .toolbar, .row, .stats { grid-template-columns:1fr; } .hero-title { font-size:30px; } }
   </style>
 </head>
 <body>
@@ -213,8 +352,27 @@ INDEX_HTML = r"""<!doctype html>
     <div id="config" class="status"></div>
   </header>
   <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Market Signal Console</div>
+        <p class="hero-title">发现市场热点，过滤噪声，抓住正在升温的金融信号。</p>
+        <p class="hero-subtitle">公开源扫描、关键词监控、AI 风险提示和本地筛选集中在一个轻量控制台里。保留速度和可读性，只把科技感加在该出现的地方。</p>
+        <div class="stats">
+          <div class="stat"><strong id="statHotspots">-</strong><span>当前结果</span></div>
+          <div class="stat"><strong id="statKeywords">-</strong><span>监控关键词</span></div>
+          <div class="stat"><strong id="statAi">-</strong><span>AI 状态</span></div>
+        </div>
+      </div>
+      <div class="signal-card">
+        <div>
+          <h2>实时雷达</h2>
+          <p class="status">扫描会把右侧筛选关键词作为本次临时监控词，适合临时追踪“医药”“机器人”“并购”等突然升温的话题。</p>
+        </div>
+        <div class="signal-line" aria-hidden="true"></div>
+      </div>
+    </section>
     <aside>
-      <section>
+      <section class="moving-card">
         <h2>扫描控制</h2>
         <button id="scanBtn">立即扫描公开源</button>
         <label><input id="noSocial" type="checkbox" style="width:auto;min-height:auto"> 不扫描微博/B站</label>
@@ -235,9 +393,12 @@ INDEX_HTML = r"""<!doctype html>
         <div id="keywords"></div>
       </section>
     </aside>
-    <div>
+    <div class="stack">
       <section>
-        <h2>热点筛选</h2>
+        <div class="panel-title-row">
+          <h2>热点筛选</h2>
+          <span class="mini-badge">source · weight · time</span>
+        </div>
         <div class="toolbar">
           <div><label>时间</label><select id="hours"><option value="6">6小时</option><option value="24" selected>24小时</option><option value="72">72小时</option><option value="168">7天</option></select></div>
           <div><label>来源</label><input id="source" placeholder="rss/google/weibo" /></div>
@@ -251,11 +412,14 @@ INDEX_HTML = r"""<!doctype html>
           <button id="digestBtn" class="secondary">生成摘要</button>
         </div>
       </section>
-      <section style="margin-top:14px">
-        <h2>热点列表</h2>
+      <section>
+        <div class="panel-title-row">
+          <h2>热点列表</h2>
+          <span id="resultBadge" class="mini-badge">等待数据</span>
+        </div>
         <div id="hotspots"></div>
       </section>
-      <section style="margin-top:14px">
+      <section>
         <h2>摘要预览</h2>
         <div id="digest" class="digest">点击“生成摘要”查看。</div>
       </section>
@@ -280,9 +444,11 @@ INDEX_HTML = r"""<!doctype html>
     async function loadConfig() {
       const cfg = await api('/api/config');
       $('config').textContent = `DB ${cfg.db_path} · AI ${cfg.ai_enabled ? cfg.ai_model : 'off'} · QQ ${cfg.qq_configured ? 'configured' : 'reserved'}`;
+      $('statAi').textContent = cfg.ai_enabled ? 'ON' : 'OFF';
     }
     async function loadKeywords() {
       const rows = await api('/api/keywords');
+      $('statKeywords').textContent = rows.filter(kw => kw.active).length;
       $('keywords').innerHTML = rows.map(kw => `
         <div class="keyword">
           <div><strong>${kw.name}</strong><br><span class="status">${kw.category} · ${kw.weight} · ${(kw.aliases||[]).join(', ')}</span></div>
@@ -299,8 +465,11 @@ INDEX_HTML = r"""<!doctype html>
         rows = await api('/api/hotspots?' + params());
       } catch (err) {
         $('hotspots').innerHTML = `<p class="risk">加载失败：${err.message}</p>`;
+        $('resultBadge').textContent = '加载失败';
         return;
       }
+      $('statHotspots').textContent = rows.length;
+      $('resultBadge').textContent = rows.length ? `${rows.length} 条信号` : '暂无信号';
       $('hotspots').innerHTML = rows.length ? rows.map(item => `
         <article class="hotspot">
           <h3>${item.title} ${item.status === 'risk' ? '<span class="risk">风险</span>' : ''}</h3>
