@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finance-hotspot-radar"
+version = "0.1.0"
+description = "Local finance hotspot radar with public-source collection, SQLite storage, analysis, and notifications."
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+finance-radar = "finance_hotspot_radar.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["finance_hotspot_radar*"]
