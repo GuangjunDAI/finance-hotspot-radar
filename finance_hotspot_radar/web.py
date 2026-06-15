@@ -48,15 +48,33 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
             return
         if parsed.path == "/api/hotspots":
             qs = parse_qs(parsed.query)
+            hours = _int(qs, "hours", 24)
+            limit = _int(qs, "limit", 20)
+            source = _str(qs, "source")
+            keyword = _str(qs, "keyword")
+            min_importance = _float(qs, "min_importance", 0.0)
+            sort = _str(qs, "sort") or "heat"
             hotspots = self._service().digest(
-                hours=_int(qs, "hours", 24),
-                limit=_int(qs, "limit", 20),
-                source=_str(qs, "source"),
-                keyword=_str(qs, "keyword"),
-                min_importance=_float(qs, "min_importance", 0.0),
-                sort=_str(qs, "sort") or "heat",
+                hours=hours,
+                limit=limit,
+                source=source,
+                keyword=keyword,
+                min_importance=min_importance,
+                sort=sort,
             )
-            self._json([item.to_dict() for item in hotspots])
+            fallback_count = 0
+            if not hotspots and hours < 168:
+                fallback_count = len(
+                    self._service().digest(
+                        hours=168,
+                        limit=limit,
+                        source=source,
+                        keyword=keyword,
+                        min_importance=min_importance,
+                        sort=sort,
+                    )
+                )
+            self._json({"items": [item.to_dict() for item in hotspots], "fallback_7d_count": fallback_count})
             return
         if parsed.path == "/api/digest":
             qs = parse_qs(parsed.query)
@@ -461,8 +479,11 @@ INDEX_HTML = r"""<!doctype html>
     }
     async function loadHotspots() {
       let rows = [];
+      let fallbackCount = 0;
       try {
-        rows = await api('/api/hotspots?' + params());
+        const payload = await api('/api/hotspots?' + params());
+        rows = Array.isArray(payload) ? payload : payload.items || [];
+        fallbackCount = Array.isArray(payload) ? 0 : payload.fallback_7d_count || 0;
       } catch (err) {
         $('hotspots').innerHTML = `<p class="risk">加载失败：${err.message}</p>`;
         $('resultBadge').textContent = '加载失败';
@@ -470,6 +491,9 @@ INDEX_HTML = r"""<!doctype html>
       }
       $('statHotspots').textContent = rows.length;
       $('resultBadge').textContent = rows.length ? `${rows.length} 条信号` : '暂无信号';
+      const emptyHint = fallbackCount
+        ? `<p class="status">当前时间窗没有命中，但 7 天内有 ${fallbackCount} 条相关信号。可把时间切到“7天”，或点“立即扫描公开源”拉取新数据。</p>`
+        : '<p class="status">暂无热点。可先执行扫描；如果填了关键词，扫描会把它作为本次临时监控词。</p>';
       $('hotspots').innerHTML = rows.length ? rows.map(item => `
         <article class="hotspot">
           <h3>${item.title} ${item.status === 'risk' ? '<span class="risk">风险</span>' : ''}</h3>
@@ -478,20 +502,26 @@ INDEX_HTML = r"""<!doctype html>
           <p>${item.summary || ''}</p>
           <p class="meta">${item.reason || ''}</p>
           ${(item.urls||[]).slice(0,3).map(u => `<a href="${u}" target="_blank">${u}</a>`).join('<br>')}
-        </article>`).join('') : '<p class="status">暂无热点。可先执行扫描。</p>';
+        </article>`).join('') : emptyHint;
     }
     async function loadDigest() {
       const data = await api('/api/digest?' + params());
       $('digest').textContent = data.text;
     }
     $('scanBtn').onclick = async () => {
-      $('scanStatus').textContent = '扫描中...';
+      const btn = $('scanBtn');
+      btn.disabled = true;
+      btn.textContent = '扫描中...';
+      $('scanStatus').textContent = '公开源和 AI 分析可能需要 40-90 秒，请稍等。';
       try {
         const data = await api('/api/scan', {method:'POST', body:JSON.stringify({no_social:$('noSocial').checked, keyword:$('keyword').value})});
         $('scanStatus').textContent = `保存 ${data.saved_hotspots} 条新热点`;
         await loadHotspots();
       } catch (err) {
         $('scanStatus').textContent = `扫描失败：${err.message}`;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '立即扫描公开源';
       }
     };
     $('addKwBtn').onclick = async () => {

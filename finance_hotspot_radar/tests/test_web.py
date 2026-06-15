@@ -33,7 +33,8 @@ class WebTests(unittest.TestCase):
                 keywords = _get_json(base + "/api/keywords")
                 self.assertTrue(any(item["name"] == "央行" for item in keywords))
                 hotspots = _get_json(base + "/api/hotspots?" + urllib.parse.urlencode({"keyword": "医药"}))
-                self.assertEqual(hotspots, [])
+                self.assertEqual(hotspots["items"], [])
+                self.assertEqual(hotspots["fallback_7d_count"], 0)
             finally:
                 server.shutdown()
                 server.server_close()
