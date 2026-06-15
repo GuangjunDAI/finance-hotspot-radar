@@ -54,6 +54,7 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
             keyword = _str(qs, "keyword")
             min_importance = _float(qs, "min_importance", 0.0)
             sort = _str(qs, "sort") or "heat"
+            order = _str(qs, "order") or "desc"
             hotspots = self._service().digest(
                 hours=hours,
                 limit=limit,
@@ -61,6 +62,7 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
                 keyword=keyword,
                 min_importance=min_importance,
                 sort=sort,
+                order=order,
             )
             fallback_count = 0
             if not hotspots and hours < 168:
@@ -72,6 +74,7 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
                         keyword=keyword,
                         min_importance=min_importance,
                         sort=sort,
+                        order=order,
                     )
                 )
             self._json({"items": [item.to_dict() for item in hotspots], "fallback_7d_count": fallback_count})
@@ -85,6 +88,7 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
                 keyword=_str(qs, "keyword"),
                 min_importance=_float(qs, "min_importance", 0.0),
                 sort=_str(qs, "sort") or "heat",
+                order=_str(qs, "order") or "desc",
             )
             self._json({"text": digest_text(hotspots, title="金融热点雷达")})
             return
@@ -136,6 +140,7 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
                 limit=int(body.get("limit") or 8),
                 min_importance=float(body.get("min_importance") or 0.0),
                 sort=str(body.get("sort") or "heat"),
+                order=str(body.get("order") or "desc"),
             )
             channel = str(body.get("channel") or "console")
             sent = self._service().notify_digest(hotspots, channel=channel)
@@ -423,6 +428,7 @@ INDEX_HTML = r"""<!doctype html>
           <div><label>关键词</label><input id="keyword" placeholder="央行/美股" /></div>
           <div><label>重要性</label><input id="minImportance" type="number" step="0.5" value="0" /></div>
           <div><label>排序</label><select id="sort"><option value="heat">热度</option><option value="importance">重要性</option><option value="relevance">相关性</option><option value="time">时间</option></select></div>
+          <div><label>顺序</label><select id="order"><option value="desc" selected>从大到小/最新</option><option value="asc">从小到大/最早</option></select></div>
           <div><label>数量</label><input id="limit" type="number" value="20" /></div>
         </div>
         <div class="row">
@@ -455,7 +461,7 @@ INDEX_HTML = r"""<!doctype html>
     };
     function params() {
       const q = new URLSearchParams();
-      ['hours','source','keyword','sort','limit'].forEach(id => { if ($(id).value) q.set(id, $(id).value); });
+      ['hours','source','keyword','sort','order','limit'].forEach(id => { if ($(id).value) q.set(id, $(id).value); });
       q.set('min_importance', $('minImportance').value || '0');
       return q.toString();
     }
@@ -497,7 +503,7 @@ INDEX_HTML = r"""<!doctype html>
       $('hotspots').innerHTML = rows.length ? rows.map(item => `
         <article class="hotspot">
           <h3>${item.title} ${item.status === 'risk' ? '<span class="risk">风险</span>' : ''}</h3>
-          <div class="meta">重要性 ${item.importance} · 热度 ${item.heat} · 相关性 ${item.relevance} · 可信度 ${item.credibility} · ${item.published_at}</div>
+          <div class="meta">重要性 ${item.importance} · 热度 ${item.heat} · 相关性 ${item.relevance} · 可信度 ${item.credibility} · ${item.published_at_display || item.published_at}</div>
           <div>${(item.keywords||[]).map(k => `<span class="pill">${k}</span>`).join('')}</div>
           <p>${item.summary || ''}</p>
           <p class="meta">${item.reason || ''}</p>

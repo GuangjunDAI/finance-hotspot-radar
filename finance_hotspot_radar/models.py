@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 
@@ -11,6 +11,15 @@ def utc_now() -> datetime:
 
 def iso_now() -> str:
     return utc_now().isoformat()
+
+
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def to_beijing(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(BEIJING_TZ)
 
 
 def parse_dt(value: Optional[str]) -> datetime:
@@ -85,6 +94,8 @@ class Hotspot:
             "relevance": round(self.relevance, 2),
             "credibility": round(self.credibility, 2),
             "published_at": self.published_at.isoformat(),
+            "published_at_bj": to_beijing(self.published_at).isoformat(),
+            "published_at_display": to_beijing(self.published_at).strftime("%Y-%m-%d %H:%M:%S") + " 北京时间",
             "reason": self.reason,
             "status": self.status,
         }

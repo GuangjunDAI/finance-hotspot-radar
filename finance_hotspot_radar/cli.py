@@ -70,6 +70,7 @@ def _add_query_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--keyword")
     parser.add_argument("--min-importance", type=float, default=0.0)
     parser.add_argument("--sort", choices=["heat", "relevance", "time", "importance"], default="heat")
+    parser.add_argument("--order", choices=["asc", "desc"], default="desc")
 
 
 def main(argv=None) -> int:
@@ -87,7 +88,7 @@ def main(argv=None) -> int:
         print(f"Saved {count} new hotspots")
         return 0
     if args.command in ("digest", "search", "alert"):
-        hotspots = service.digest(args.hours, args.limit, args.source, args.keyword, args.min_importance, args.sort)
+        hotspots = service.digest(args.hours, args.limit, args.source, args.keyword, args.min_importance, args.sort, args.order)
         if args.command == "alert":
             sent = service.notify_alerts(hotspots, args.channel, args.min_importance or 7.0)
             print(f"Sent {sent} alerts")

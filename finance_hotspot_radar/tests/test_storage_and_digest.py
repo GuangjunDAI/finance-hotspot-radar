@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -44,3 +44,40 @@ class StorageDigestTests(unittest.TestCase):
 
             self.assertIs(store.mark_notified("console", 1, "alert"), True)
             self.assertIs(store.mark_notified("console", 1, "alert"), False)
+
+    def test_hotspot_sort_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            store = Store(Path(tmp) / "radar.db")
+            store.init()
+            now = datetime.now(timezone.utc)
+            early = Hotspot(
+                title="早",
+                summary="early",
+                sources=["rss"],
+                urls=["https://a.test/early"],
+                keywords=["央行"],
+                importance=2,
+                heat=1,
+                relevance=0.5,
+                credibility=0.7,
+                published_at=now - timedelta(hours=2),
+                reason="test",
+            )
+            late = Hotspot(
+                title="晚",
+                summary="late",
+                sources=["rss"],
+                urls=["https://a.test/late"],
+                keywords=["央行"],
+                importance=8,
+                heat=5,
+                relevance=0.9,
+                credibility=0.8,
+                published_at=now,
+                reason="test",
+            )
+            store.save_hotspots([early, late])
+
+            self.assertEqual(store.query_hotspots(sort="time", order="asc", limit=2)[0].title, "早")
+            self.assertEqual(store.query_hotspots(sort="time", order="desc", limit=2)[0].title, "晚")
+            self.assertEqual(store.query_hotspots(sort="importance", order="asc", limit=2)[0].title, "早")

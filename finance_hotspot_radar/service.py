@@ -49,9 +49,10 @@ class RadarService:
         keyword: Optional[str] = None,
         min_importance: float = 0.0,
         sort: str = "heat",
+        order: str = "desc",
     ) -> List[Hotspot]:
         self.init_db(seed=True)
-        return self.store.query_hotspots(hours, source, keyword, min_importance, sort, limit)
+        return self.store.query_hotspots(hours, source, keyword, min_importance, sort, order, limit)
 
     def notify_digest(self, hotspots: List[Hotspot], channel: str = "console", title: str = "金融热点雷达") -> bool:
         digest_key = hashlib.sha1("|".join(str(h.id) for h in hotspots if h.id).encode("utf-8")).hexdigest()

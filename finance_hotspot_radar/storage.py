@@ -190,6 +190,7 @@ class Store:
         keyword: Optional[str] = None,
         min_importance: float = 0.0,
         sort: str = "heat",
+        order: str = "desc",
         limit: int = 20,
     ) -> List[Hotspot]:
         cutoff = (utc_now() - timedelta(hours=hours)).isoformat()
@@ -202,7 +203,8 @@ class Store:
             sql += " AND keywords LIKE ?"
             params.append(f"%{keyword}%")
         order_col = {"heat": "heat", "relevance": "relevance", "time": "published_at", "importance": "importance"}.get(sort, "heat")
-        sql += f" ORDER BY {order_col} DESC LIMIT ?"
+        direction = "ASC" if order == "asc" else "DESC"
+        sql += f" ORDER BY {order_col} {direction} LIMIT ?"
         params.append(limit)
         return [self._hotspot_from_row(row) for row in self.conn.execute(sql, params)]
 
