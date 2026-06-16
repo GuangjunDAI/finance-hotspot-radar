@@ -489,6 +489,23 @@ INDEX_HTML = r"""<!doctype html>
       q.set('min_importance', $('minImportance').value || '0');
       return q.toString();
     }
+    function normalizeHeadline(value) {
+      return String(value || '')
+        .replace(/\s+/g, '')
+        .replace(/[｜|]\s*[^｜|]+$/g, '')
+        .replace(/\s*[-_—–]\s*[^-_—–]{2,18}$/g, '')
+        .replace(/[，。、“”‘’：:；;！!？?\-—–_\s]/g, '')
+        .toLowerCase();
+    }
+    function meaningfulSummary(item) {
+      const summary = String(item.summary || '').trim();
+      if (!summary) return '';
+      const titleNorm = normalizeHeadline(item.title);
+      const summaryNorm = normalizeHeadline(summary);
+      if (!summaryNorm || summaryNorm === titleNorm) return '';
+      if (titleNorm && (summaryNorm.includes(titleNorm) || titleNorm.includes(summaryNorm))) return '';
+      return summary;
+    }
     async function loadConfig() {
       const cfg = await api('/api/config');
       $('config').textContent = `DB ${cfg.db_path} · AI ${cfg.ai_enabled ? cfg.ai_model : 'off'} · QQ ${cfg.qq_configured ? 'configured' : 'reserved'}`;
@@ -524,12 +541,14 @@ INDEX_HTML = r"""<!doctype html>
       const emptyHint = fallbackCount
         ? `<p class="status">当前时间窗没有命中，但 7 天内有 ${fallbackCount} 条相关信号。可把时间切到“7天”，或点“立即扫描公开源”拉取新数据。</p>`
         : '<p class="status">暂无热点。可先执行扫描；如果填了关键词，扫描会把它作为本次临时监控词。</p>';
-      $('hotspots').innerHTML = rows.length ? rows.map(item => `
+      $('hotspots').innerHTML = rows.length ? rows.map(item => {
+        const summary = meaningfulSummary(item);
+        return `
         <article class="hotspot">
           <h3>${item.title} ${item.status === 'risk' ? '<span class="risk">风险</span>' : ''}</h3>
           <div class="meta">重要性 ${item.importance} · 热度 ${item.heat} · 相关性 ${item.relevance} · 可信度 ${item.credibility} · ${item.published_at_display || item.published_at}</div>
           <div>${(item.keywords||[]).map(k => `<span class="pill">${k}</span>`).join('')}</div>
-          <p>${item.summary || ''}</p>
+          ${summary ? `<p>${summary}</p>` : ''}
           <p class="meta">${item.reason || ''}</p>
           <div class="source-row">
             ${(item.sources||[]).slice(0,4).map(s => `<span class="source-chip">${s}</span>`).join('')}
@@ -542,7 +561,8 @@ INDEX_HTML = r"""<!doctype html>
                 ${(item.urls||[]).slice(0,5).map((u, index) => `<a href="${u}" target="_blank" rel="noreferrer">来源 ${index + 1} · ${u}</a>`).join('')}
               </div>
             </details>` : ''}
-        </article>`).join('') : emptyHint;
+        </article>`;
+      }).join('') : emptyHint;
     }
     async function loadDigest() {
       const data = await api('/api/digest?' + params());
