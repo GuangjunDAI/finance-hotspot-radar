@@ -9,3 +9,4 @@ __pycache__/
 .idea/
 *.egg-info/
 setup.py
+.DS_Store

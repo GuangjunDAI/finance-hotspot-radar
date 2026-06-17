@@ -12,7 +12,7 @@ from finance_hotspot_radar.models import Hotspot
 from finance_hotspot_radar.storage import Store
 from finance_hotspot_radar.web import RadarRequestHandler
 from finance_hotspot_radar.service import RadarService
-from http.server import HTTPServer
+from http.server import ThreadingHTTPServer
 
 
 class WebTests(unittest.TestCase):
@@ -43,8 +43,9 @@ class WebTests(unittest.TestCase):
 
             class Handler(RadarRequestHandler):
                 radar_settings = settings
+                scan_lock = threading.Lock()
 
-            server = HTTPServer(("127.0.0.1", 0), Handler)
+            server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
             thread = threading.Thread(target=server.serve_forever, daemon=True)
             thread.start()
             try:
@@ -59,6 +60,14 @@ class WebTests(unittest.TestCase):
                 self.assertEqual(hotspots["fallback_7d_count"], 0)
                 rows = _get_json(base + "/api/hotspots?" + urllib.parse.urlencode({"keyword": "央行", "hours": 87600}))
                 self.assertIn("北京时间", rows["items"][0]["published_at_display"])
+                Handler.scan_lock.acquire()
+                try:
+                    err = _post_json(base + "/api/scan", {})
+                    self.assertEqual(err["error"], "已有扫描任务正在运行，请稍后刷新热点。")
+                    config_again = _get_json(base + "/api/config")
+                    self.assertTrue(config_again["ai_enabled"])
+                finally:
+                    Handler.scan_lock.release()
             finally:
                 server.shutdown()
                 server.server_close()
@@ -68,3 +77,13 @@ class WebTests(unittest.TestCase):
 def _get_json(url):
     with urllib.request.urlopen(url, timeout=5) as resp:
         return json.loads(resp.read().decode("utf-8"))
+
+
+def _post_json(url, body):
+    data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as err:
+        return json.loads(err.read().decode("utf-8"))

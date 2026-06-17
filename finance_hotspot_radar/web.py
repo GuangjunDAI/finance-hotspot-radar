@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import json
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict
 from urllib.parse import parse_qs, urlparse
 
@@ -16,14 +17,16 @@ def run_web(settings: Settings, host: str = "127.0.0.1", port: int = 8765) -> No
 
     class Handler(RadarRequestHandler):
         radar_settings = settings
+        scan_lock = threading.Lock()
 
-    server = HTTPServer((host, port), Handler)
+    server = ThreadingHTTPServer((host, port), Handler)
     print(f"Finance Hotspot Radar web dashboard: http://{host}:{port}")
     server.serve_forever()
 
 
 class RadarRequestHandler(BaseHTTPRequestHandler):
     radar_settings: Settings
+    scan_lock = threading.Lock()
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -98,11 +101,17 @@ class RadarRequestHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path == "/api/scan":
             body = self._body()
-            count = self._service().scan(
-                include_social=not body.get("no_social", False),
-                extra_keyword=str(body.get("keyword") or "").strip() or None,
-            )
-            self._json({"saved_hotspots": count})
+            if not self.scan_lock.acquire(blocking=False):
+                self._json({"error": "已有扫描任务正在运行，请稍后刷新热点。"}, status=409)
+                return
+            try:
+                count = self._service().scan(
+                    include_social=not body.get("no_social", False),
+                    extra_keyword=str(body.get("keyword") or "").strip() or None,
+                )
+                self._json({"saved_hotspots": count})
+            finally:
+                self.scan_lock.release()
             return
         if parsed.path == "/api/keywords":
             body = self._body()
